@@ -6,342 +6,407 @@
   <title>VerseGrid - The Poetry Experience</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,700;1,500&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
-    ::-webkit-scrollbar-thumb:hover { background: #475569; }
-    
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
     html { scroll-behavior: smooth; }
-    .bento-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-    .bento-card:hover { transform: translateY(-4px); box-shadow: 0 20px 40px -15px rgba(0,0,0,0.5); border-color: rgba(255,255,255,0.15); }
-    
     body {
-      background-color: #0f172a;
-      background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+      font-family: 'DM Sans', system-ui, sans-serif;
+      background-color: #f8fafc;
+      background-image: radial-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px);
       background-size: 40px 40px;
     }
+    .font-serif { font-family: 'Cormorant Garamond', Georgia, serif; }
 
-    /* Page transitions */
+    .bento-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    .bento-card:hover { transform: translateY(-4px); box-shadow: 0 20px 40px -15px rgba(0,0,0,0.1); border-color: rgba(0,0,0,0.1); }
+
     .page-section { display: none; animation: fadeIn 0.4s ease-in-out; }
     .page-section.active { display: block; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* Custom Toast */
+    .carousel-track { display: flex; transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1); }
+
     #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 100; display: flex; flex-direction: column; gap: 10px; }
-    .toast { background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 12px 20px; border-radius: 12px; font-size: 14px; font-weight: 500; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5); animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    .toast { background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); border: 1px solid rgba(0,0,0,0.1); color: #0f172a; padding: 12px 20px; border-radius: 12px; font-size: 14px; font-weight: 600; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); animation: slideIn 0.3s ease; }
     @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(15,23,42,0.5); z-index: 90; display: none; align-items: center; justify-content: center; padding: 16px; }
+    .modal-backdrop.open { display: flex; }
+
+    .wave-bar { width: 3px; border-radius: 2px; background: #0d9488; animation: wave 1s ease-in-out infinite; }
+    .wave-bar:nth-child(2) { animation-delay: 0.15s; }
+    .wave-bar:nth-child(3) { animation-delay: 0.3s; }
+    .wave-bar:nth-child(4) { animation-delay: 0.45s; }
+    .wave-bar:nth-child(5) { animation-delay: 0.6s; }
+    @keyframes wave { 0%, 100% { height: 8px; opacity: 0.5; } 50% { height: 18px; opacity: 1; } }
+    .audio-playing .wave-bar { animation-play-state: running; }
+    .audio-paused .wave-bar { animation-play-state: paused; opacity: 0.35; }
+
+    .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
   </style>
 </head>
-<body class="text-slate-200 font-sans antialiased flex flex-col md:flex-row min-h-screen">
+<body class="text-slate-800 antialiased flex flex-col md:flex-row min-h-screen">
 
   <!-- LEFT SIDEBAR -->
-  <aside class="hidden md:flex flex-col w-64 h-screen fixed left-0 top-0 border-r border-slate-800/50 bg-slate-950/80 backdrop-blur-xl z-50 p-6 justify-between">
-    <div>
-      <a href="#" onclick="switchTab('home')" class="flex items-center space-x-3 mb-12 group">
+  <aside class="hidden md:flex flex-col w-64 h-screen fixed left-0 top-0 border-r border-slate-200 bg-white/80 backdrop-blur-xl z-50 overflow-y-auto">
+    <div class="p-6 flex-1">
+      <a href="#" onclick="event.preventDefault(); switchTab('home')" class="flex items-center space-x-3 mb-8 group">
         <div class="w-10 h-10 bg-gradient-to-br from-teal-400 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20 group-hover:scale-110 transition-transform">
           <i class="fa-solid fa-pen-nib text-white text-xl"></i>
         </div>
-        <span class="text-2xl font-serif italic text-white tracking-wide">VerseGrid</span>
+        <span class="text-2xl font-serif italic text-slate-900 tracking-wide">VerseGrid</span>
       </a>
 
-      <nav class="space-y-2" id="desktop-nav">
-        <a href="#" onclick="switchTab('home')" class="nav-btn active flex items-center space-x-4 px-4 py-3 bg-white/10 text-white rounded-xl font-medium transition-colors" data-target="home"><i class="fa-solid fa-house w-5"></i><span>Home</span></a>
-        <a href="#" onclick="switchTab('explore')" class="nav-btn flex items-center space-x-4 px-4 py-3 text-slate-400 hover:text-white hover:bg-white/5 rounded-xl font-medium transition-colors" data-target="explore"><i class="fa-solid fa-compass w-5"></i><span>Explore</span></a>
-        <a href="#" onclick="switchTab('library')" class="nav-btn flex items-center space-x-4 px-4 py-3 text-slate-400 hover:text-white hover:bg-white/5 rounded-xl font-medium transition-colors" data-target="library"><i class="fa-solid fa-book-open w-5"></i><span>Library</span></a>
-        <a href="#" onclick="switchTab('profile')" class="nav-btn flex items-center space-x-4 px-4 py-3 text-slate-400 hover:text-white hover:bg-white/5 rounded-xl font-medium transition-colors" data-target="profile"><i class="fa-regular fa-user w-5"></i><span>Profile</span></a>
+      <nav class="space-y-1" id="desktop-nav">
+        <a href="#" onclick="event.preventDefault(); switchTab('home')" class="nav-btn active flex items-center space-x-3 px-4 py-2.5 rounded-xl font-medium transition-colors" data-target="home"><i class="fa-solid fa-house w-5"></i><span>Home</span></a>
+        <a href="#" onclick="event.preventDefault(); switchTab('events')" class="nav-btn flex items-center space-x-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl font-medium transition-colors" data-target="events"><i class="fa-solid fa-calendar-star w-5 text-amber-500"></i><span>Poetry Events</span></a>
+        <a href="#" onclick="event.preventDefault(); switchTab('listen')" class="nav-btn flex items-center space-x-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl font-medium transition-colors" data-target="listen"><i class="fa-solid fa-headphones w-5 text-blue-500"></i><span>Listen</span></a>
+        <a href="#" onclick="event.preventDefault(); switchTab('moods')" class="nav-btn flex items-center space-x-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl font-medium transition-colors" data-target="moods"><i class="fa-solid fa-face-smile w-5 text-pink-500"></i><span>Poem Moods</span></a>
+        <a href="#" onclick="event.preventDefault(); switchTab('writers')" class="nav-btn flex items-center space-x-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl font-medium transition-colors" data-target="writers"><i class="fa-solid fa-pen-fancy w-5 text-violet-500"></i><span>Writers</span></a>
+        <a href="#" onclick="event.preventDefault(); switchTab('leaderboard')" class="nav-btn flex items-center space-x-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl font-medium transition-colors" data-target="leaderboard"><i class="fa-solid fa-chart-simple w-5 text-emerald-600"></i><span>Leaderboard</span></a>
+        <a href="#" onclick="event.preventDefault(); switchTab('explore')" class="nav-btn flex items-center space-x-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl font-medium transition-colors" data-target="explore"><i class="fa-solid fa-compass w-5"></i><span>Explore</span></a>
+        <a href="#" onclick="event.preventDefault(); switchTab('blog')" class="nav-btn flex items-center space-x-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl font-medium transition-colors" data-target="blog"><i class="fa-solid fa-newspaper w-5"></i><span>Journal</span></a>
+        <a href="#" onclick="event.preventDefault(); switchTab('search')" class="nav-btn flex items-center space-x-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl font-medium transition-colors" data-target="search"><i class="fa-solid fa-magnifying-glass w-5"></i><span>Search</span></a>
+        <a href="#" onclick="event.preventDefault(); switchTab('library')" class="nav-btn flex items-center space-x-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl font-medium transition-colors" data-target="library"><i class="fa-solid fa-book-open w-5"></i><span>Library</span></a>
+        <a href="#" onclick="event.preventDefault(); switchTab('help')" class="nav-btn flex items-center space-x-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl font-medium transition-colors" data-target="help"><i class="fa-solid fa-circle-question w-5 text-teal-600"></i><span>Help & Support</span></a>
+        <a href="#" onclick="event.preventDefault(); switchTab('profile')" class="nav-btn flex items-center space-x-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl font-medium transition-colors" data-target="profile"><i class="fa-regular fa-user w-5"></i><span>Profile</span></a>
       </nav>
     </div>
 
-    <div class="space-y-6 border-t border-slate-800 pt-6">
-      <button onclick="showToast('Opening submission form...')" class="w-full bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-bold py-3 rounded-xl shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-all flex items-center justify-center space-x-2">
-        <i class="fa-solid fa-plus"></i> <span>Write Poem</span>
+    <div class="p-6 border-t border-slate-200 space-y-4">
+      <button onclick="openSubmit()" class="w-full bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-bold py-3 rounded-xl shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-all flex items-center justify-center space-x-2">
+        <i class="fa-solid fa-plus"></i><span>Write Poem</span>
       </button>
+      <button onclick="showToast('Opening app store…')" class="w-full flex items-center justify-center gap-2 border border-slate-200 text-slate-700 text-sm font-semibold py-2.5 rounded-xl hover:bg-slate-50 transition">
+        <i class="fa-brands fa-google-play"></i> Get the App
+      </button>
+      <div class="flex items-center gap-4 justify-center text-slate-400">
+        <a href="#" onclick="event.preventDefault(); showToast('Opening Instagram')" class="hover:text-pink-500 transition"><i class="fa-brands fa-instagram"></i></a>
+        <a href="#" onclick="event.preventDefault(); showToast('Opening YouTube')" class="hover:text-pink-500 transition"><i class="fa-brands fa-youtube"></i></a>
+        <a href="#" onclick="event.preventDefault(); showToast('Opening X')" class="hover:text-slate-800 transition"><i class="fa-brands fa-x-twitter"></i></a>
+      </div>
     </div>
   </aside>
 
   <!-- MAIN CONTENT -->
   <main class="flex-1 md:ml-64 relative pb-20 md:pb-0">
-    
+
     <!-- TOP HEADER -->
-    <header class="sticky top-0 z-40 bg-slate-950/70 backdrop-blur-md border-b border-slate-800/50 px-6 py-4 flex justify-between items-center">
+    <header class="sticky top-0 z-40 bg-white/70 backdrop-blur-md border-b border-slate-200 px-6 py-4 flex justify-between items-center">
       <div class="flex items-center space-x-4">
-        <button class="bg-slate-900 border border-slate-700 text-xs px-3 py-1.5 rounded-lg text-slate-300 hover:text-white hover:border-slate-500 transition">
+        <button onclick="toggleMobileMenu()" class="md:hidden w-9 h-9 flex items-center justify-center rounded-lg hover:bg-slate-100"><i class="fa-solid fa-bars"></i></button>
+        <button id="lang-btn" onclick="toggleLanguage()" class="bg-white border border-slate-300 text-xs px-3 py-1.5 rounded-lg text-slate-700 hover:text-slate-900 hover:border-slate-400 transition shadow-sm">
           English <i class="fa-solid fa-chevron-down ml-1 text-[10px]"></i>
         </button>
       </div>
 
-      <div class="flex items-center space-x-6">
-        <div class="hidden sm:flex items-center space-x-3 bg-gradient-to-r from-teal-500/10 to-transparent border border-teal-500/20 py-1.5 px-4 rounded-full cursor-pointer hover:bg-teal-500/20 transition" onclick="showToast('Redirecting to sign up...')">
-          <div class="w-2 h-2 bg-teal-500 rounded-full animate-pulse"></div>
-          <span class="text-xs font-bold text-teal-400">Join to earn creator badges</span>
-          <button class="text-xs bg-teal-500 text-slate-900 px-3 py-1 rounded-full font-bold hover:bg-teal-400 transition">Sign Up</button>
+      <div class="flex items-center space-x-4">
+        <div id="promo-header" class="hidden sm:flex items-center space-x-3 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 py-1.5 px-4 rounded-full cursor-pointer hover:bg-amber-100/80 transition" onclick="openSignup()">
+          <i class="fa-solid fa-gift text-amber-600"></i>
+          <span class="text-xs font-bold text-amber-800">Get 30 free Ink Coins</span>
+          <button class="text-xs bg-slate-900 text-white px-3 py-1 rounded-full font-bold hover:bg-slate-800 transition">Sign Up</button>
         </div>
-        
-        <div class="flex items-center space-x-2 bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-full cursor-pointer hover:bg-slate-800" onclick="showToast('Your wallet is empty!')">
-          <i class="fa-solid fa-star text-amber-400 text-sm"></i>
-          <span class="text-sm font-bold text-white">120</span>
+        <div class="flex items-center space-x-2 bg-white border border-slate-300 px-3 py-1.5 rounded-full cursor-pointer hover:bg-slate-50 shadow-sm" onclick="switchTab('profile')">
+          <i class="fa-solid fa-coins text-amber-500 text-sm"></i>
+          <span id="coin-balance" class="text-sm font-bold text-slate-900">0</span>
         </div>
       </div>
     </header>
 
-    <!-- VIEWS CONTAINER -->
     <div class="p-6 max-w-7xl mx-auto">
 
-      <!-- ==================== HOME VIEW ==================== -->
+      <!-- HOME -->
       <div id="home" class="page-section active space-y-6">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          
-          <!-- Hero Card -->
-          <div class="bento-card col-span-1 md:col-span-2 lg:col-span-2 lg:row-span-2 bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800 rounded-3xl overflow-hidden relative flex flex-col justify-between group">
-            <div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1478147424096-f65b12f27837?auto=format&fit=crop&w=800&q=80')] bg-cover bg-center opacity-20 group-hover:opacity-30 transition-opacity"></div>
-            <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent"></div>
-            
-            <div class="relative p-8 z-10">
-              <div class="flex justify-between items-center mb-8">
-                <span class="bg-white/10 backdrop-blur border border-white/20 px-3 py-1 rounded-full text-xs font-bold tracking-widest uppercase text-white shadow-lg">Editor's Pick</span>
-              </div>
-              
-              <div class="mt-12 mb-8">
-                <p class="text-2xl md:text-4xl font-serif font-bold text-white leading-tight mb-6 text-shadow-lg">
-                  We write to taste life twice,<br>in the moment and in retrospect.
-                </p>
-                <p class="text-teal-400 font-medium tracking-wide">— Anais Nin</p>
-              </div>
+
+        <!-- Promo strip -->
+        <div id="promo-banner" class="bento-card bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 border border-amber-200 rounded-3xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 relative shadow-sm">
+          <button onclick="dismissPromo()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+          <div class="flex items-start gap-4 pr-8">
+            <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shrink-0 shadow-md">
+              <i class="fa-solid fa-coins text-white text-lg"></i>
             </div>
-            
-            <div class="relative z-10 p-6 border-t border-white/10 bg-slate-950/50 backdrop-blur-md flex justify-between items-center">
+            <div>
+              <h3 class="font-bold text-slate-900">Join VerseGrid and receive 30 Ink Coins</h3>
+              <p class="text-sm text-slate-600 mt-1">Use them to appreciate poets whose words move you.</p>
+            </div>
+          </div>
+          <button onclick="openSignup()" class="shrink-0 bg-slate-900 text-white font-bold px-6 py-2.5 rounded-xl hover:bg-slate-800 transition shadow-md">Create free account</button>
+        </div>
+
+        <!-- Row 1: Hero + Top supporters + Social -->
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          <!-- Hero -->
+          <div class="bento-card lg:col-span-2 bg-gradient-to-br from-white to-slate-50 border border-slate-200 rounded-3xl overflow-hidden relative flex flex-col justify-between min-h-[320px] shadow-sm">
+            <div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1478147424096-f65b12f27837?auto=format&fit=crop&w=800&q=80')] bg-cover bg-center opacity-10"></div>
+            <div class="absolute inset-0 bg-gradient-to-t from-white via-white/80 to-transparent"></div>
+            <div class="relative p-8 z-10 flex-1 flex flex-col justify-center">
+              <span class="inline-block w-fit bg-slate-900 text-white px-3 py-1 rounded-full text-xs font-bold tracking-widest uppercase mb-6">Editor's Pick</span>
+              <p class="text-2xl md:text-4xl font-serif font-bold text-slate-900 leading-tight mb-4">We write to taste life twice,<br>in the moment and in retrospect.</p>
+              <p class="text-teal-600 font-medium">— Anais Nin</p>
+            </div>
+            <div class="relative z-10 p-6 border-t border-slate-200 bg-white/50 backdrop-blur-md flex justify-between items-center">
               <div class="flex space-x-4">
-                <button onclick="toggleLike(this)" class="text-slate-400 hover:text-red-500 transition flex items-center space-x-2"><i class="fa-solid fa-heart text-xl"></i></button>
-                <button onclick="showToast('Link copied to clipboard!')" class="text-slate-400 hover:text-blue-400 transition flex items-center space-x-2"><i class="fa-regular fa-paper-plane text-xl"></i></button>
+                <button onclick="toggleLike(this)" class="text-slate-400 hover:text-red-500 transition"><i class="fa-solid fa-heart text-xl"></i></button>
+                <button onclick="showToast('Link copied!')" class="text-slate-400 hover:text-blue-500 transition"><i class="fa-regular fa-paper-plane text-xl"></i></button>
               </div>
-              <button onclick="showToast('Awarded 5 stars to this post!')" class="bg-gradient-to-r from-amber-400 to-orange-500 text-white px-6 py-2 rounded-full font-bold flex items-center space-x-2 shadow-lg hover:scale-105 transition">
-                <i class="fa-solid fa-award"></i> <span>Give Award</span>
+              <button onclick="tipPoet(5)" class="bg-gradient-to-r from-amber-400 to-orange-500 text-white px-5 py-2 rounded-full font-bold flex items-center space-x-2 shadow-md hover:scale-105 transition">
+                <i class="fa-solid fa-coins"></i><span>Tip 5</span>
               </button>
-              <button onclick="showToast('Saved to your Library')" class="text-slate-400 hover:text-white transition"><i class="fa-regular fa-bookmark text-xl"></i></button>
+              <button onclick="savePoemById(1)" class="text-slate-400 hover:text-slate-900 transition"><i class="fa-regular fa-bookmark text-xl"></i></button>
             </div>
           </div>
 
-          <!-- Top Donors -->
-          <div class="bento-card col-span-1 md:col-span-2 bg-slate-900 border border-slate-800 rounded-3xl p-6 relative overflow-hidden">
+          <!-- Top Supporters -->
+          <div class="bento-card lg:col-span-1 bg-white border border-slate-200 rounded-3xl p-6 relative overflow-hidden shadow-sm">
             <div class="absolute top-0 right-0 w-32 h-32 bg-teal-500/10 rounded-full blur-3xl"></div>
             <div class="flex justify-between items-center mb-6 relative z-10">
-              <h3 class="font-bold text-slate-300 tracking-wide uppercase text-xs">Top Supporters</h3>
-              <button onclick="showToast('Loading full leaderboard...')" class="text-xs text-teal-400 hover:text-teal-300">View All &rarr;</button>
+              <h3 class="font-bold text-slate-500 tracking-wide uppercase text-xs">Top Supporters</h3>
+              <button onclick="switchTab('leaderboard')" class="text-xs text-teal-600 hover:text-teal-500 font-medium">View All →</button>
             </div>
-            
             <div class="flex justify-between items-end relative z-10">
-              <div class="flex flex-col items-center"><img src="https://ui-avatars.com/api/?name=Ar&background=334155&color=fff" class="w-12 h-12 rounded-full mb-2 border-2 border-slate-700 hover:scale-110 transition cursor-pointer"><span class="text-[10px] text-slate-500">Aryan</span></div>
-              <div class="flex flex-col items-center"><img src="https://ui-avatars.com/api/?name=Ki&background=334155&color=fff" class="w-14 h-14 rounded-full mb-2 border-2 border-slate-700 hover:scale-110 transition cursor-pointer"><span class="text-xs text-slate-400">Kiran</span></div>
-              
-              <div class="flex flex-col items-center relative -top-2 cursor-pointer hover:scale-105 transition" onclick="showToast('Viewing Maya\'s profile')">
-                <div class="absolute -top-3 bg-gradient-to-r from-teal-400 to-emerald-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full z-20 shadow-lg">#1 FAN</div>
-                <div class="rounded-full p-1 bg-gradient-to-b from-teal-400 to-emerald-600 mb-2 shadow-lg">
-                  <img src="https://ui-avatars.com/api/?name=Ma&background=1e293b&color=fff" class="w-16 h-16 rounded-full border-4 border-slate-900">
-                </div>
-                <span class="text-sm font-bold text-white">Maya</span>
-              </div>
-              
-              <div class="flex flex-col items-center"><img src="https://ui-avatars.com/api/?name=Ro&background=334155&color=fff" class="w-14 h-14 rounded-full mb-2 border-2 border-slate-700 hover:scale-110 transition cursor-pointer"><span class="text-xs text-slate-400">Rohan</span></div>
-              <div class="flex flex-col items-center"><img src="https://ui-avatars.com/api/?name=Si&background=334155&color=fff" class="w-12 h-12 rounded-full mb-2 border-2 border-slate-700 hover:scale-110 transition cursor-pointer"><span class="text-[10px] text-slate-500">Sia</span></div>
+              <button onclick="viewWriter('Nitya Rao')" class="flex flex-col items-center group"><img src="https://ui-avatars.com/api/?name=NR&background=f1f5f9&color=0f172a" class="w-11 h-11 rounded-full mb-2 border-2 border-white shadow-sm group-hover:scale-110 transition"><span class="text-[10px] text-slate-500">Nitya</span></button>
+              <button onclick="viewWriter('Madan Verma')" class="flex flex-col items-center group"><img src="https://ui-avatars.com/api/?name=MV&background=f1f5f9&color=0f172a" class="w-14 h-14 rounded-full mb-2 border-2 border-white shadow-sm group-hover:scale-110 transition"><span class="text-xs text-slate-600">Madan</span></button>
+              <button onclick="viewWriter('Ajay Mehta')" class="flex flex-col items-center relative -top-2 group">
+                <div class="absolute -top-3 bg-gradient-to-r from-amber-400 to-orange-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full z-20 shadow-md whitespace-nowrap">Top Patron</div>
+                <div class="rounded-full p-1 bg-gradient-to-b from-amber-400 to-orange-500 mb-2 shadow-md"><img src="https://ui-avatars.com/api/?name=AM&background=ffffff&color=0f172a" class="w-16 h-16 rounded-full border-4 border-white"></div>
+                <span class="text-sm font-bold text-slate-900">Ajay</span>
+              </button>
+              <button onclick="viewWriter('Farhat Ali')" class="flex flex-col items-center group"><img src="https://ui-avatars.com/api/?name=FA&background=f1f5f9&color=0f172a" class="w-14 h-14 rounded-full mb-2 border-2 border-white shadow-sm group-hover:scale-110 transition"><span class="text-xs text-slate-600">Farhat</span></button>
+              <button onclick="viewWriter('Jawwad Khan')" class="flex flex-col items-center group"><img src="https://ui-avatars.com/api/?name=JK&background=f1f5f9&color=0f172a" class="w-11 h-11 rounded-full mb-2 border-2 border-white shadow-sm group-hover:scale-110 transition"><span class="text-[10px] text-slate-500">Jawwad</span></button>
             </div>
           </div>
 
-          <!-- Audio Card -->
-          <div class="bento-card bg-slate-900 border border-slate-800 rounded-3xl p-5 flex flex-col justify-between">
+          <!-- Social follow -->
+          <div class="bento-card lg:col-span-1 bg-white border border-slate-200 rounded-3xl p-6 flex flex-col justify-between shadow-sm">
+            <h3 class="font-bold text-slate-500 tracking-wide uppercase text-xs mb-4">Stay Connected</h3>
+            <p class="text-slate-700 font-medium mb-1">Follow <span class="text-teal-700 font-bold">@versegrid</span></p>
+            <p class="text-sm text-slate-500 mb-6">Daily prompts, live readings, and poet spotlights.</p>
+            <div class="flex gap-3">
+              <button onclick="showToast('Following on Instagram')" class="flex-1 py-3 rounded-xl border border-slate-200 hover:border-pink-300 hover:bg-pink-50 transition text-pink-500 font-bold"><i class="fa-brands fa-instagram mr-2"></i>Instagram</button>
+              <button onclick="showToast('Subscribed on YouTube')" class="flex-1 py-3 rounded-xl border border-slate-200 hover:border-red-300 hover:bg-red-50 transition text-red-500 font-bold"><i class="fa-brands fa-youtube mr-2"></i>YouTube</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Today's Top 5 carousel -->
+        <div class="bento-card bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
+          <div class="flex justify-between items-center mb-5">
+            <h3 class="font-bold text-slate-900 text-lg tracking-wide">Today's Top 5</h3>
+            <div class="flex gap-2">
+              <button onclick="carouselPrev()" class="w-9 h-9 rounded-full border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition"><i class="fa-solid fa-chevron-left text-xs"></i></button>
+              <button onclick="carouselNext()" class="w-9 h-9 rounded-full border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition"><i class="fa-solid fa-chevron-right text-xs"></i></button>
+            </div>
+          </div>
+          <div class="overflow-hidden rounded-2xl">
+            <div id="top5-carousel" class="carousel-track"></div>
+          </div>
+          <div id="carousel-dots" class="flex justify-center gap-1.5 mt-4"></div>
+        </div>
+
+        <!-- Row 2: Audio, Video, Formats -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div class="bento-card bg-white border border-slate-200 rounded-3xl p-5 flex flex-col justify-between shadow-sm">
             <div class="flex justify-between items-center mb-4">
-              <h3 class="font-bold text-slate-300 tracking-wide uppercase text-xs flex items-center"><i class="fa-solid fa-microphone mr-2 text-blue-400"></i> Spoken Word</h3>
+              <h3 class="font-bold text-slate-500 tracking-wide uppercase text-xs flex items-center"><i class="fa-solid fa-microphone mr-2 text-blue-500"></i> Spoken Word</h3>
             </div>
             <div class="flex items-center space-x-4 mb-4">
-              <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl flex-shrink-0 flex items-center justify-center shadow-lg"><i class="fa-solid fa-music text-white text-sm"></i></div>
+              <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl flex-shrink-0 flex items-center justify-center shadow-md"><i class="fa-solid fa-music text-white text-sm"></i></div>
               <div class="overflow-hidden">
-                <h4 class="text-sm font-bold text-white truncate">Midnight Thoughts</h4>
-                <p class="text-xs text-slate-400 truncate">By Kabir Desai</p>
+                <h4 id="audio-title" class="text-sm font-bold text-slate-900 truncate">Whispers at Dawn</h4>
+                <p id="audio-author" class="text-xs text-slate-500 truncate">Meera Joshi</p>
               </div>
             </div>
             <div class="space-y-3">
               <div class="flex items-center space-x-2 text-[10px] text-slate-500">
-                <span>0:00</span>
-                <div class="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden"><div class="w-0 h-full bg-blue-500 rounded-full" id="audio-progress"></div></div>
-                <span>3:45</span>
+                <span id="audio-time">0:00</span>
+                <div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden cursor-pointer" onclick="seekAudio(event)"><div id="audio-progress" class="w-0 h-full bg-blue-500 rounded-full transition-all"></div></div>
+                <span>3:12</span>
               </div>
               <div class="flex justify-between items-center px-2">
-                <button class="text-slate-500 hover:text-white transition"><i class="fa-solid fa-repeat text-xs"></i></button>
-                <button class="text-slate-400 hover:text-white transition"><i class="fa-solid fa-backward-step"></i></button>
-                <button onclick="playMedia('Audio')" class="w-10 h-10 bg-white text-slate-900 rounded-full flex items-center justify-center hover:scale-110 transition"><i class="fa-solid fa-play ml-1"></i></button>
-                <button class="text-slate-400 hover:text-white transition"><i class="fa-solid fa-forward-step"></i></button>
-                <button onclick="toggleLike(this)" class="text-slate-500 hover:text-white transition"><i class="fa-solid fa-heart text-xs"></i></button>
+                <div id="waveform" class="flex items-end gap-0.5 h-5 audio-paused"><div class="wave-bar" style="height:10px"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div></div>
+                <button id="audio-play-btn" onclick="toggleAudio()" class="w-10 h-10 bg-slate-900 text-white rounded-full flex items-center justify-center hover:scale-110 shadow-sm transition"><i class="fa-solid fa-play ml-0.5"></i></button>
+                <button onclick="switchTab('listen')" class="text-xs text-teal-600 font-bold hover:text-teal-500">All tracks →</button>
               </div>
             </div>
           </div>
 
-          <!-- Video Card -->
-          <div class="bento-card bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden relative group h-full min-h-[200px]">
-            <div class="absolute inset-0 bg-gradient-to-br from-purple-900/40 to-slate-900 z-0"></div>
-            <div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1516280440503-62f4e8b919d7?auto=format&fit=crop&w=600&q=80')] bg-cover bg-center opacity-40 mix-blend-overlay group-hover:scale-105 transition duration-500"></div>
-            <div class="relative z-10 p-5 flex flex-col h-full justify-between">
+          <div class="bento-card bg-gradient-to-br from-purple-50 to-slate-50 border border-slate-200 rounded-3xl overflow-hidden relative group min-h-[200px] shadow-sm cursor-pointer" onclick="switchTab('events')">
+            <div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1516280440503-62f4e8b919d7?auto=format&fit=crop&w=600&q=80')] bg-cover bg-center opacity-20 mix-blend-overlay group-hover:scale-105 transition duration-500"></div>
+            <div class="relative z-10 p-5 flex flex-col h-full justify-between min-h-[200px]">
               <div class="flex justify-between items-start">
-                <h3 class="font-bold text-slate-300 tracking-wide uppercase text-xs flex items-center drop-shadow-md"><i class="fa-solid fa-video mr-2 text-purple-400"></i> Open Mic</h3>
-                <span class="bg-black/60 backdrop-blur text-white text-[9px] px-2 py-1 rounded border border-white/10">Live Session</span>
+                <h3 class="font-bold text-slate-600 tracking-wide uppercase text-xs flex items-center"><i class="fa-solid fa-video mr-2 text-purple-600"></i> Open Mic</h3>
+                <span class="bg-white/80 backdrop-blur text-purple-700 text-[9px] font-bold px-2 py-1 rounded border border-purple-200">Live Session</span>
               </div>
-              <div>
-                <h4 class="text-lg font-serif font-bold text-white leading-tight mb-2 drop-shadow-lg">Echoes of the City</h4>
-              </div>
+              <div><h4 class="text-lg font-serif font-bold text-slate-900 leading-tight mb-2">Echoes of the City</h4><p class="text-xs text-slate-500">Sat, 26 Jul · Delhi</p></div>
             </div>
-            <button onclick="playMedia('Video')" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-purple-600/90 text-white rounded-full flex justify-center items-center z-20 backdrop-blur shadow-lg group-hover:scale-110 transition">
-              <i class="fa-solid fa-play ml-1"></i>
-            </button>
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-purple-600/90 text-white rounded-full flex justify-center items-center z-20 backdrop-blur shadow-lg group-hover:scale-110 transition pointer-events-none"><i class="fa-solid fa-play ml-1"></i></div>
           </div>
 
+          <div class="bento-card lg:col-span-2 bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
+            <h3 class="font-bold text-slate-500 tracking-wide uppercase text-xs mb-4">Formats</h3>
+            <div class="grid grid-cols-3 gap-3">
+              <div onclick="filterFormat('Haiku')" class="cursor-pointer flex flex-col items-center p-4 rounded-xl bg-slate-50 hover:bg-teal-50 border border-transparent hover:border-teal-200 transition group">
+                <span class="font-bold text-slate-800 group-hover:text-teal-600">Haiku</span><span class="text-[10px] bg-white border border-slate-200 px-2 py-0.5 rounded-md text-slate-500 mt-2">12k</span>
+              </div>
+              <div onclick="filterFormat('Free Verse')" class="cursor-pointer flex flex-col items-center p-4 rounded-xl bg-slate-50 hover:bg-teal-50 border border-transparent hover:border-teal-200 transition group">
+                <span class="font-bold text-slate-800 group-hover:text-teal-600">Free Verse</span><span class="text-[10px] bg-white border border-slate-200 px-2 py-0.5 rounded-md text-slate-500 mt-2">89k</span>
+              </div>
+              <div onclick="filterFormat('Sonnet')" class="cursor-pointer flex flex-col items-center p-4 rounded-xl bg-slate-50 hover:bg-teal-50 border border-transparent hover:border-teal-200 transition group">
+                <span class="font-bold text-slate-800 group-hover:text-teal-600">Sonnet</span><span class="text-[10px] bg-white border border-slate-200 px-2 py-0.5 rounded-md text-slate-500 mt-2">4k</span>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-6">
-          
-          <!-- Categories -->
-          <div class="bento-card lg:col-span-1 bg-slate-900 border border-slate-800 rounded-3xl p-6">
-            <h3 class="font-bold text-slate-300 tracking-wide uppercase text-xs mb-4">Formats</h3>
-            <div class="space-y-3">
-              <div onclick="showToast('Loading Haikus...')" class="cursor-pointer flex justify-between items-center p-3 rounded-xl bg-slate-800/50 hover:bg-slate-800 border border-transparent hover:border-slate-700 transition group">
-                <span class="font-bold text-white group-hover:text-teal-400 transition">Haiku</span>
-                <span class="text-[10px] bg-slate-950 px-2 py-1 rounded-md text-slate-400">12k</span>
-              </div>
-              <div onclick="showToast('Loading Free Verse...')" class="cursor-pointer flex justify-between items-center p-3 rounded-xl bg-slate-800/50 hover:bg-slate-800 border border-transparent hover:border-slate-700 transition group">
-                <span class="font-bold text-white group-hover:text-teal-400 transition">Free Verse</span>
-                <span class="text-[10px] bg-slate-950 px-2 py-1 rounded-md text-slate-400">89k</span>
-              </div>
-              <div onclick="showToast('Loading Sonnets...')" class="cursor-pointer flex justify-between items-center p-3 rounded-xl bg-slate-800/50 hover:bg-slate-800 border border-transparent hover:border-slate-700 transition group">
-                <span class="font-bold text-white group-hover:text-teal-400 transition">Sonnet</span>
-                <span class="text-[10px] bg-slate-950 px-2 py-1 rounded-md text-slate-400">4k</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Themes -->
-          <div class="bento-card md:col-span-2 lg:col-span-2 bg-slate-900 border border-slate-800 rounded-3xl p-6">
+        <!-- Row 3: Themes + Merch -->
+        <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div class="bento-card md:col-span-2 lg:col-span-3 bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
             <div class="flex justify-between items-center mb-4">
-              <h3 class="font-bold text-slate-300 tracking-wide uppercase text-xs">Browse by Theme</h3>
-              <button onclick="switchTab('explore')" class="text-xs text-teal-400 hover:text-teal-300">View Grid &rarr;</button>
+              <h3 class="font-bold text-slate-500 tracking-wide uppercase text-xs">Browse by Mood</h3>
+              <button onclick="switchTab('moods')" class="text-xs text-teal-600 hover:text-teal-500 font-medium">All moods →</button>
             </div>
-            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              <div onclick="showToast('Filtering: Nature')" class="cursor-pointer flex items-center space-x-3 bg-slate-950 border border-slate-800 p-3 rounded-2xl hover:border-green-500/50 transition group">
-                <div class="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center text-green-500 group-hover:scale-110 transition"><i class="fa-solid fa-leaf text-sm"></i></div>
-                <div><h4 class="text-sm font-bold text-white">Nature</h4></div>
-              </div>
-              <div onclick="showToast('Filtering: Philosophy')" class="cursor-pointer flex items-center space-x-3 bg-slate-950 border border-slate-800 p-3 rounded-2xl hover:border-indigo-500/50 transition group">
-                <div class="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-500 group-hover:scale-110 transition"><i class="fa-solid fa-brain text-sm"></i></div>
-                <div><h4 class="text-sm font-bold text-white">Philosophy</h4></div>
-              </div>
-              <div onclick="showToast('Filtering: Romance')" class="cursor-pointer flex items-center space-x-3 bg-slate-950 border border-slate-800 p-3 rounded-2xl hover:border-pink-500/50 transition group">
-                <div class="w-8 h-8 rounded-lg bg-pink-500/10 flex items-center justify-center text-pink-500 group-hover:scale-110 transition"><i class="fa-solid fa-heart text-sm"></i></div>
-                <div><h4 class="text-sm font-bold text-white">Romance</h4></div>
-              </div>
-              <div onclick="showToast('Filtering: Urban')" class="cursor-pointer flex items-center space-x-3 bg-slate-950 border border-slate-800 p-3 rounded-2xl hover:border-yellow-500/50 transition group">
-                <div class="w-8 h-8 rounded-lg bg-yellow-500/10 flex items-center justify-center text-yellow-500 group-hover:scale-110 transition"><i class="fa-solid fa-city text-sm"></i></div>
-                <div><h4 class="text-sm font-bold text-white">Urban</h4></div>
-              </div>
-            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3" id="home-moods"></div>
           </div>
-
-          <!-- Store -->
-          <div class="bento-card lg:col-span-1 bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-3xl p-6 flex flex-col justify-between">
+          <div class="bento-card bg-gradient-to-br from-slate-50 to-white border border-slate-200 rounded-3xl p-6 flex flex-col justify-between shadow-sm">
             <div>
-              <div class="flex justify-between items-center mb-4">
-                <h3 class="font-bold text-slate-300 tracking-wide uppercase text-xs flex items-center"><i class="fa-solid fa-bag-shopping mr-2 text-teal-400"></i> Merch</h3>
+              <h3 class="font-bold text-slate-500 tracking-wide uppercase text-xs flex items-center mb-4"><i class="fa-solid fa-bag-shopping mr-2 text-teal-600"></i> Merch</h3>
+              <div class="bg-slate-100 rounded-xl aspect-video mb-4 flex items-center justify-center border border-slate-200 relative overflow-hidden group cursor-pointer">
+                <i class="fa-solid fa-mug-hot text-3xl text-slate-400 group-hover:scale-110 transition"></i>
+                <span class="absolute bottom-2 right-2 bg-teal-500 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm">New</span>
               </div>
-              <div class="bg-slate-950 rounded-xl aspect-video mb-4 flex items-center justify-center border border-slate-800 relative overflow-hidden group cursor-pointer">
-                 <i class="fa-solid fa-mug-hot text-3xl text-slate-600 group-hover:scale-110 transition duration-300"></i>
-                 <span class="absolute bottom-2 right-2 bg-teal-500 text-white text-[10px] font-bold px-2 py-0.5 rounded">New</span>
-              </div>
-              <h4 class="text-sm font-bold text-white leading-tight">Ceramic Writer's Mug</h4>
+              <h4 class="text-sm font-bold text-slate-900">Ceramic Writer's Mug</h4>
             </div>
-            <button onclick="showToast('Adding to cart...')" class="w-full mt-4 bg-white text-slate-900 font-bold py-2 rounded-xl text-sm hover:bg-slate-200 transition shadow-lg">Buy - $15</button>
+            <button onclick="showToast('Added to cart!')" class="w-full mt-4 bg-slate-900 text-white font-bold py-2 rounded-xl text-sm hover:bg-slate-800 transition shadow-md">Buy — $15</button>
           </div>
         </div>
       </div>
 
-      <!-- ==================== EXPLORE VIEW ==================== -->
-      <div id="explore" class="page-section hidden space-y-6">
-        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-8 text-center">
-          <h2 class="text-2xl font-bold text-white mb-4">Discover New Voices</h2>
-          <div class="max-w-xl mx-auto relative">
-            <input type="text" placeholder="Search poems, authors, or tags..." class="w-full bg-slate-950 border border-slate-700 rounded-full py-3 px-6 text-white outline-none focus:border-teal-500 transition">
-            <button onclick="showToast('Searching...')" class="absolute right-2 top-2 bottom-2 bg-teal-500 text-slate-900 px-4 rounded-full font-bold hover:bg-teal-400 transition"><i class="fa-solid fa-magnifying-glass"></i></button>
+      <!-- EVENTS -->
+      <div id="events" class="page-section space-y-6">
+        <div class="flex justify-between items-end">
+          <div><h2 class="text-3xl font-serif font-bold text-slate-900">Poetry Events</h2><p class="text-slate-500 mt-1">Open mics, slams, and virtual readings.</p></div>
+        </div>
+        <div id="events-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+      </div>
+
+      <!-- LISTEN -->
+      <div id="listen" class="page-section space-y-6">
+        <h2 class="text-3xl font-serif font-bold text-slate-900">Listen</h2>
+        <p class="text-slate-500 -mt-4">Spoken word, recitations, and ambient verse.</p>
+        <div id="listen-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+      </div>
+
+      <!-- MOODS -->
+      <div id="moods" class="page-section space-y-6">
+        <h2 class="text-3xl font-serif font-bold text-slate-900">Poem Moods</h2>
+        <p class="text-slate-500 -mt-4">Find poetry that matches how you feel.</p>
+        <div id="moods-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4"></div>
+        <div id="mood-results" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 hidden"></div>
+      </div>
+
+      <!-- WRITERS -->
+      <div id="writers" class="page-section space-y-6">
+        <h2 class="text-3xl font-serif font-bold text-slate-900">Writers</h2>
+        <p class="text-slate-500 -mt-4">Discover poets shaping today's literary landscape.</p>
+        <div id="writers-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+      </div>
+
+      <!-- LEADERBOARD -->
+      <div id="leaderboard" class="page-section space-y-6">
+        <h2 class="text-3xl font-serif font-bold text-slate-900">Leaderboard</h2>
+        <div class="flex gap-2">
+          <button onclick="setLeaderboardTab('patrons')" id="lb-tab-patrons" class="text-sm font-bold px-5 py-2 rounded-full bg-teal-600 text-white">Patrons</button>
+          <button onclick="setLeaderboardTab('poets')" id="lb-tab-poets" class="text-sm font-bold px-5 py-2 rounded-full bg-slate-100 text-slate-600">Poets</button>
+        </div>
+        <div id="leaderboard-list" class="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-4xl"></div>
+      </div>
+
+      <!-- EXPLORE -->
+      <div id="explore" class="page-section space-y-6">
+        <div class="bg-white border border-slate-200 rounded-3xl p-8 shadow-sm">
+          <h2 class="text-2xl font-bold text-slate-900 mb-4">Discover New Voices</h2>
+          <div class="max-w-xl relative">
+            <input type="text" id="explore-search" placeholder="Search poems, authors, or tags…" class="w-full bg-slate-50 border border-slate-300 rounded-full py-3 px-6 text-slate-900 outline-none focus:border-teal-500 transition shadow-inner" oninput="performExploreSearch()">
+            <button class="absolute right-2 top-2 bottom-2 bg-teal-500 text-white px-4 rounded-full font-bold hover:bg-teal-400 transition shadow-sm"><i class="fa-solid fa-magnifying-glass"></i></button>
           </div>
         </div>
-        
-        <h3 class="font-bold text-slate-300 tracking-wide uppercase text-xs">Trending This Week</h3>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div class="bg-slate-900 p-6 rounded-3xl border border-slate-800 hover:border-slate-600 transition cursor-pointer" onclick="showToast('Opening poem...')">
-            <span class="text-xs text-teal-400 font-bold">#Nostalgia</span>
-            <h4 class="text-xl font-serif text-white mt-2 mb-2">The Old Oak Tree</h4>
-            <p class="text-sm text-slate-400 line-clamp-2">Roots dig deep into the memories we left behind in the summer of our youth...</p>
+        <h3 class="font-bold text-slate-500 tracking-wide uppercase text-xs">Trending This Week</h3>
+        <div id="explore-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+      </div>
+
+      <!-- BLOG -->
+      <div id="blog" class="page-section space-y-6">
+        <h2 class="text-3xl font-serif font-bold text-slate-900">The Verse Journal</h2>
+        <p class="text-slate-500 -mt-4">Essays, interviews, and craft notes.</p>
+        <div id="blog-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+      </div>
+
+      <!-- SEARCH -->
+      <div id="search" class="page-section space-y-6">
+        <h2 class="text-3xl font-serif font-bold text-slate-900">Search</h2>
+        <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm max-w-2xl">
+          <div class="relative">
+            <input id="search-input" type="search" placeholder="Poems, poets, tags…" class="w-full bg-slate-50 border border-slate-300 rounded-2xl py-3 pl-11 pr-4 outline-none focus:border-teal-500 transition" oninput="performSearch()">
+            <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
           </div>
-          <div class="bg-slate-900 p-6 rounded-3xl border border-slate-800 hover:border-slate-600 transition cursor-pointer" onclick="showToast('Opening poem...')">
-            <span class="text-xs text-purple-400 font-bold">#Space</span>
-            <h4 class="text-xl font-serif text-white mt-2 mb-2">Constellations</h4>
-            <p class="text-sm text-slate-400 line-clamp-2">Mapping the stars on your skin, I found a universe I never knew existed...</p>
-          </div>
-          <div class="bg-slate-900 p-6 rounded-3xl border border-slate-800 hover:border-slate-600 transition cursor-pointer" onclick="showToast('Opening poem...')">
-            <span class="text-xs text-amber-400 font-bold">#Motivation</span>
-            <h4 class="text-xl font-serif text-white mt-2 mb-2">Rise Again</h4>
-            <p class="text-sm text-slate-400 line-clamp-2">Fall seven times, stand up eight. The ground is just a stepping stone...</p>
+        </div>
+        <div id="search-results" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+      </div>
+
+      <!-- HELP -->
+      <div id="help" class="page-section space-y-6">
+        <h2 class="text-3xl font-serif font-bold text-slate-900">Help & Support</h2>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div class="lg:col-span-2 space-y-3" id="faq-list"></div>
+          <div class="bento-card bg-teal-50 border border-teal-100 rounded-3xl p-6 h-fit">
+            <h3 class="font-bold text-teal-900 mb-2">Still need help?</h3>
+            <p class="text-sm text-teal-800/70 mb-4">Our team responds within 24 hours.</p>
+            <button onclick="showToast('Support ticket opened')" class="w-full bg-teal-600 text-white font-bold py-3 rounded-xl hover:bg-teal-500 transition">Contact Support</button>
           </div>
         </div>
       </div>
 
-      <!-- ==================== LIBRARY VIEW ==================== -->
-      <div id="library" class="page-section hidden space-y-6">
-        <h2 class="text-2xl font-bold text-white mb-6">Your Personal Library</h2>
-        
-        <div class="flex space-x-4 mb-6 border-b border-slate-800 pb-2">
-          <button class="text-teal-400 font-bold border-b-2 border-teal-400 pb-2">Saved Poems</button>
-          <button class="text-slate-400 hover:text-white pb-2 transition" onclick="showToast('No saved audio yet.')">Liked Audio</button>
-          <button class="text-slate-400 hover:text-white pb-2 transition" onclick="showToast('No purchases history found.')">Purchases</button>
+      <!-- LIBRARY -->
+      <div id="library" class="page-section space-y-6">
+        <h2 class="text-2xl font-bold text-slate-900">Your Personal Library</h2>
+        <div class="flex space-x-4 border-b border-slate-200 pb-2">
+          <button onclick="setLibraryTab('saved')" id="lib-tab-saved" class="lib-tab text-teal-600 font-bold border-b-2 border-teal-500 pb-2">Saved Poems</button>
+          <button onclick="setLibraryTab('liked')" id="lib-tab-liked" class="lib-tab text-slate-500 hover:text-slate-900 pb-2 transition">Liked</button>
         </div>
-
-        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6">
-          <div class="flex justify-between items-center border-b border-slate-800 py-4">
-            <div>
-              <h4 class="text-lg font-bold text-white">The Ocean's Lullaby</h4>
-              <p class="text-sm text-slate-400">By Sarah Jenkins</p>
-            </div>
-            <button onclick="showToast('Removed from Library')" class="text-red-400 hover:text-red-300"><i class="fa-solid fa-bookmark"></i></button>
-          </div>
-          <div class="flex justify-between items-center py-4">
-            <div>
-              <h4 class="text-lg font-bold text-white">City Lights</h4>
-              <p class="text-sm text-slate-400">By Marcus Reed</p>
-            </div>
-            <button onclick="showToast('Removed from Library')" class="text-red-400 hover:text-red-300"><i class="fa-solid fa-bookmark"></i></button>
-          </div>
-        </div>
+        <div id="library-list" class="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm"></div>
       </div>
 
-      <!-- ==================== PROFILE VIEW ==================== -->
-      <div id="profile" class="page-section hidden space-y-6">
-        <div class="bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800 rounded-3xl p-8 relative overflow-hidden">
+      <!-- PROFILE -->
+      <div id="profile" class="page-section space-y-6">
+        <div class="bg-gradient-to-br from-white to-slate-50 border border-slate-200 rounded-3xl p-8 relative overflow-hidden shadow-sm">
           <div class="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-8 relative z-10">
-            <img src="https://ui-avatars.com/api/?name=User&background=0d9488&color=fff&size=120" class="rounded-full border-4 border-slate-800 shadow-xl">
+            <img id="profile-avatar" src="https://ui-avatars.com/api/?name=Guest&background=0d9488&color=fff&size=120" class="rounded-full border-4 border-white shadow-md">
             <div class="text-center md:text-left">
-              <h2 class="text-3xl font-bold text-white">Guest Writer</h2>
-              <p class="text-slate-400 mb-4">@guest_verse</p>
+              <h2 id="profile-name" class="text-3xl font-bold text-slate-900">Guest Writer</h2>
+              <p id="profile-handle" class="text-slate-500 mb-4">@guest_verse</p>
               <div class="flex space-x-6 justify-center md:justify-start">
-                <div><span class="block text-xl font-bold text-white">0</span><span class="text-xs text-slate-500 uppercase">Poems</span></div>
-                <div><span class="block text-xl font-bold text-white">120</span><span class="text-xs text-slate-500 uppercase">Stars</span></div>
-                <div><span class="block text-xl font-bold text-white">0</span><span class="text-xs text-slate-500 uppercase">Followers</span></div>
+                <div><span id="stat-poems" class="block text-xl font-bold text-slate-900">0</span><span class="text-xs text-slate-500 uppercase">Poems</span></div>
+                <div><span id="stat-coins" class="block text-xl font-bold text-amber-600">0</span><span class="text-xs text-slate-500 uppercase">Coins</span></div>
+                <div><span id="stat-followers" class="block text-xl font-bold text-slate-900">0</span><span class="text-xs text-slate-500 uppercase">Followers</span></div>
               </div>
             </div>
-            <div class="md:ml-auto">
-              <button onclick="showToast('Settings opened')" class="bg-slate-800 text-white px-6 py-2 rounded-xl hover:bg-slate-700 transition border border-slate-700"><i class="fa-solid fa-gear mr-2"></i> Edit Profile</button>
+            <div class="md:ml-auto flex gap-3">
+              <button onclick="openSignup()" id="profile-cta" class="bg-teal-500 text-white px-6 py-2 rounded-xl hover:bg-teal-400 transition shadow-sm font-bold">Sign Up</button>
+              <button onclick="showToast('Settings opened')" class="bg-white text-slate-800 px-6 py-2 rounded-xl hover:bg-slate-50 transition border border-slate-300 shadow-sm"><i class="fa-solid fa-gear mr-2 text-slate-500"></i>Edit</button>
             </div>
           </div>
         </div>
-        
-        <div class="text-center py-12 bg-slate-900 border border-slate-800 rounded-3xl">
-          <i class="fa-solid fa-pen-fancy text-4xl text-slate-600 mb-4"></i>
-          <h3 class="text-xl font-bold text-white mb-2">No Poems Yet</h3>
-          <p class="text-slate-400 mb-6">Start sharing your thoughts with the community.</p>
-          <button onclick="showToast('Opening editor...')" class="bg-teal-500 text-slate-900 font-bold px-6 py-2 rounded-full hover:bg-teal-400 transition">Write First Poem</button>
+        <div id="profile-poems" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+        <div id="profile-empty" class="text-center py-12 bg-white border border-slate-200 rounded-3xl shadow-sm">
+          <i class="fa-solid fa-pen-fancy text-4xl text-slate-300 mb-4"></i>
+          <h3 class="text-xl font-bold text-slate-900 mb-2">No Poems Yet</h3>
+          <p class="text-slate-500 mb-6">Start sharing your thoughts with the community.</p>
+          <button onclick="openSubmit()" class="bg-teal-500 text-white font-bold px-6 py-2 rounded-full hover:bg-teal-400 transition shadow-sm">Write First Poem</button>
         </div>
       </div>
 
@@ -349,102 +414,551 @@
   </main>
 
   <!-- MOBILE BOTTOM NAV -->
-  <nav class="md:hidden fixed bottom-0 w-full bg-slate-950/90 backdrop-blur-xl border-t border-slate-800 z-50 px-6 py-3 pb-safe" id="mobile-nav">
+  <nav class="md:hidden fixed bottom-0 w-full bg-white/90 backdrop-blur-xl border-t border-slate-200 z-50 px-6 py-3" id="mobile-nav">
     <div class="flex justify-between items-center relative">
-      <a href="#" onclick="switchTab('home')" class="nav-btn-mob flex flex-col items-center text-teal-400" data-target="home"><i class="fa-solid fa-house mb-1 text-lg"></i></a>
-      <a href="#" onclick="switchTab('explore')" class="nav-btn-mob flex flex-col items-center text-slate-500 hover:text-white transition" data-target="explore"><i class="fa-solid fa-compass mb-1 text-lg"></i></a>
-      
-      <a href="#" onclick="showToast('Opening writer tool...')" class="relative -top-6 flex flex-col items-center group">
-        <div class="w-14 h-14 bg-gradient-to-br from-teal-500 to-emerald-600 rounded-full flex justify-center items-center text-white border-4 border-slate-950 shadow-[0_0_20px_rgba(20,184,166,0.4)] transition-transform">
-          <i class="fa-solid fa-plus text-xl"></i>
-        </div>
+      <a href="#" onclick="event.preventDefault(); switchTab('home')" class="nav-btn-mob flex flex-col items-center text-teal-600" data-target="home"><i class="fa-solid fa-house mb-1 text-lg"></i></a>
+      <a href="#" onclick="event.preventDefault(); switchTab('explore')" class="nav-btn-mob flex flex-col items-center text-slate-400" data-target="explore"><i class="fa-solid fa-compass mb-1 text-lg"></i></a>
+      <a href="#" onclick="event.preventDefault(); openSubmit()" class="relative -top-6">
+        <div class="w-14 h-14 bg-gradient-to-br from-teal-500 to-emerald-600 rounded-full flex justify-center items-center text-white border-4 border-white shadow-[0_0_20px_rgba(20,184,166,0.4)]"><i class="fa-solid fa-plus text-xl"></i></div>
       </a>
-      
-      <a href="#" onclick="switchTab('library')" class="nav-btn-mob flex flex-col items-center text-slate-500 hover:text-white transition" data-target="library"><i class="fa-solid fa-book-open mb-1 text-lg"></i></a>
-      <a href="#" onclick="switchTab('profile')" class="nav-btn-mob flex flex-col items-center text-slate-500 hover:text-white transition" data-target="profile"><i class="fa-regular fa-user mb-1 text-lg"></i></a>
+      <a href="#" onclick="event.preventDefault(); switchTab('library')" class="nav-btn-mob flex flex-col items-center text-slate-400" data-target="library"><i class="fa-solid fa-book-open mb-1 text-lg"></i></a>
+      <a href="#" onclick="event.preventDefault(); switchTab('profile')" class="nav-btn-mob flex flex-col items-center text-slate-400" data-target="profile"><i class="fa-regular fa-user mb-1 text-lg"></i></a>
     </div>
   </nav>
 
-  <!-- Toast Container -->
+  <!-- Mobile menu -->
+  <div id="mobile-menu" class="fixed inset-0 z-[60] hidden md:hidden">
+    <div class="absolute inset-0 bg-black/40" onclick="toggleMobileMenu()"></div>
+    <div class="absolute left-0 top-0 bottom-0 w-72 bg-white p-6 overflow-y-auto shadow-2xl">
+      <div class="flex justify-between items-center mb-6">
+        <span class="font-serif italic text-xl">VerseGrid</span>
+        <button onclick="toggleMobileMenu()"><i class="fa-solid fa-xmark text-slate-500"></i></button>
+      </div>
+      <nav class="space-y-1" id="mobile-nav-clone"></nav>
+    </div>
+  </div>
+
+  <!-- Modals -->
+  <div id="signup-modal" class="modal-backdrop" onclick="if(event.target===this)closeSignup()">
+    <div class="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl">
+      <h3 class="text-2xl font-serif font-bold mb-1">Join VerseGrid</h3>
+      <p class="text-sm text-slate-500 mb-5">Create your account and claim 30 Ink Coins.</p>
+      <input id="signup-name" type="text" placeholder="Display name" class="w-full border border-slate-200 rounded-xl px-4 py-3 mb-3 outline-none focus:border-teal-500">
+      <input id="signup-email" type="email" placeholder="Email address" class="w-full border border-slate-200 rounded-xl px-4 py-3 mb-4 outline-none focus:border-teal-500">
+      <button onclick="completeSignup()" class="w-full bg-teal-600 text-white font-bold py-3 rounded-xl hover:bg-teal-500 transition">Create account</button>
+      <button onclick="closeSignup()" class="w-full mt-2 text-sm text-slate-500 py-2">Maybe later</button>
+    </div>
+  </div>
+
+  <div id="submit-modal" class="modal-backdrop" onclick="if(event.target===this)closeSubmit()">
+    <div class="bg-white rounded-3xl p-6 w-full max-w-lg shadow-2xl">
+      <h3 class="text-2xl font-serif font-bold mb-1">Share a Poem</h3>
+      <p class="text-sm text-slate-500 mb-4">Your words deserve an audience.</p>
+      <input id="poem-title" type="text" placeholder="Title" class="w-full border border-slate-200 rounded-xl px-4 py-3 mb-3 outline-none focus:border-teal-500">
+      <textarea id="poem-body" rows="8" placeholder="Write your verse here…" class="w-full border border-slate-200 rounded-xl px-4 py-3 mb-3 outline-none focus:border-teal-500 resize-none"></textarea>
+      <select id="poem-mood" class="w-full border border-slate-200 rounded-xl px-4 py-3 mb-4 outline-none focus:border-teal-500 bg-white">
+        <option>Reflective</option><option>Joyful</option><option>Melancholy</option><option>Rebellious</option><option>Romantic</option>
+      </select>
+      <button onclick="submitPoem()" class="w-full bg-slate-900 text-white font-bold py-3 rounded-xl hover:bg-slate-800 transition">Publish</button>
+      <button onclick="closeSubmit()" class="w-full mt-2 text-sm text-slate-500 py-2">Cancel</button>
+    </div>
+  </div>
+
+  <div id="poem-modal" class="modal-backdrop" onclick="if(event.target===this)closePoem()">
+    <div class="bg-white rounded-3xl p-6 w-full max-w-lg shadow-2xl max-h-[85vh] overflow-y-auto">
+      <div class="flex justify-between items-start mb-4">
+        <div><span id="modal-tag" class="text-xs font-bold text-teal-600"></span><h3 id="modal-title" class="text-2xl font-serif font-bold mt-1"></h3><p id="modal-author" class="text-sm text-slate-500"></p></div>
+        <button onclick="closePoem()"><i class="fa-solid fa-xmark text-slate-400"></i></button>
+      </div>
+      <p id="modal-body" class="text-slate-700 leading-relaxed font-serif text-lg whitespace-pre-line mb-6"></p>
+      <div class="flex gap-2">
+        <button onclick="likeCurrentPoem()" class="flex-1 border border-slate-200 py-2.5 rounded-xl text-sm font-semibold hover:bg-red-50 transition"><i class="fa-regular fa-heart mr-1"></i> Like</button>
+        <button onclick="saveCurrentPoem()" class="flex-1 border border-slate-200 py-2.5 rounded-xl text-sm font-semibold hover:bg-teal-50 transition"><i class="fa-regular fa-bookmark mr-1"></i> Save</button>
+        <button onclick="tipCurrentPoem()" class="flex-1 bg-amber-50 border border-amber-200 py-2.5 rounded-xl text-sm font-bold text-amber-800 hover:bg-amber-100 transition"><i class="fa-solid fa-coins mr-1"></i> Tip</button>
+      </div>
+    </div>
+  </div>
+
   <div id="toast-container"></div>
 
-  <!-- Javascript Engine -->
   <script>
-    // Tab Switching Logic
+    const POEMS = [
+      { id: 1, title: 'Monsoon Letters', author: 'Priya Shah', tag: '#Monsoon', mood: 'Melancholy', body: 'Rain writes on windows\nwhat my pen forgot to say —\neach drop, a postscript\nto summers we outgrew.', likes: 842 },
+      { id: 2, title: 'City of Echoes', author: 'Rahul Das', tag: '#Urban', mood: 'Rebellious', body: 'Concrete hymns at midnight,\ntaxi horns like broken strings —\nI am the verse\nno billboard could sell.', likes: 1204 },
+      { id: 3, title: 'First Light', author: 'Ananya Roy', tag: '#Hope', mood: 'Joyful', body: 'Before the alarm,\nbefore the world remembers its name,\nthe sky rehearses\nbeing gentle again.', likes: 967 },
+      { id: 4, title: 'Tea & Silence', author: 'Vikram Nair', tag: '#Stillness', mood: 'Reflective', body: 'Two cups, one conversation\nheld entirely in steam —\nsome truths only rise\nwhen nothing is spoken.', likes: 531 },
+      { id: 5, title: 'Paper Boats', author: 'Sana Malik', tag: '#Memory', mood: 'Melancholy', body: 'We sent our names downstream\non folded afternoons —\nthe river kept them,\nwe kept the folding.', likes: 1102 },
+      { id: 6, title: 'Neon Ghazal', author: 'Imran Qureshi', tag: '#Night', mood: 'Romantic', body: 'Your shadow on the pavement\noutlasts every green light —\nI walk slower\nthan my heartbeat.', likes: 778 },
+      { id: 7, title: 'Root Words', author: 'Leela Menon', tag: '#Heritage', mood: 'Reflective', body: "Grandmother's tongue\nin my mouth like old honey —\nI translate hunger\ninto syllables she'd know.", likes: 445 },
+      { id: 8, title: 'Unfinished Ode', author: 'Dev Kapoor', tag: '#Draft', mood: 'Rebellious', body: 'I refuse the final line —\nlet the poem breathe\npast the period,\npast the applause.', likes: 623 }
+    ];
+
+    const WRITERS = [
+      { name: 'Ajay Mehta', handle: '@ajay_verse', poems: 142, followers: '12.4k', bio: 'Urban ghazals & midnight sonnets.' },
+      { name: 'Meera Joshi', handle: '@meera_reads', poems: 89, followers: '8.1k', bio: 'Voice-first poetry. Listen before you read.' },
+      { name: 'Priya Shah', handle: '@priya_monsoon', poems: 203, followers: '19k', bio: 'Seasonal verses from Mumbai monsoons.' },
+      { name: 'Imran Qureshi', handle: '@imran_nights', poems: 67, followers: '5.6k', bio: 'Neon-lit romanticism.' },
+      { name: 'Sana Malik', handle: '@sana_ink', poems: 118, followers: '9.3k', bio: 'Memory, water, and paper.' },
+      { name: 'Rahul Das', handle: '@rahul_city', poems: 95, followers: '7.2k', bio: 'City poems for insomniacs.' }
+    ];
+
+    const EVENTS = [
+      { title: 'Delhi Open Mic Night', date: 'Sat, 26 Jul · 7 PM', venue: 'The Poetry Club, Hauz Khas', spots: 12 },
+      { title: 'Virtual Haiku Hour', date: 'Sun, 27 Jul · 11 AM', venue: 'Online · Zoom', spots: 50 },
+      { title: 'Slam Championship Finals', date: 'Fri, 1 Aug · 6 PM', venue: 'NCPA Mumbai', spots: 3 }
+    ];
+
+    const MOODS = [
+      { name: 'Joyful', icon: 'fa-sun', colorClass: 'text-amber-500 bg-amber-50' },
+      { name: 'Melancholy', icon: 'fa-cloud-rain', colorClass: 'text-blue-500 bg-blue-50' },
+      { name: 'Romantic', icon: 'fa-heart', colorClass: 'text-pink-500 bg-pink-50' },
+      { name: 'Reflective', icon: 'fa-moon', colorClass: 'text-indigo-500 bg-indigo-50' },
+      { name: 'Rebellious', icon: 'fa-fire', colorClass: 'text-orange-500 bg-orange-50' }
+    ];
+
+    const BLOG = [
+      { title: 'The Art of the Line Break', excerpt: 'Why where you break a line changes everything about how a poem breathes.', date: '18 Jul' },
+      { title: 'Interview: Meera Joshi on Voice', excerpt: '"The ear hears truth before the eye catches meaning."', date: '12 Jul' },
+      { title: 'Building a Daily Writing Ritual', excerpt: 'Five minutes, one notebook, zero excuses.', date: '5 Jul' }
+    ];
+
+    const FAQ = [
+      { q: 'What are Ink Coins?', a: 'Ink Coins let you tip poets and unlock premium readings. New members receive 30 free coins.' },
+      { q: 'Can I publish anonymously?', a: 'Yes. Toggle anonymous mode when submitting a poem from your profile settings.' },
+      { q: 'How do events work?', a: 'Browse events, reserve a spot, and receive a calendar invite by email.' }
+    ];
+
+    const AUDIO_TRACKS = [
+      { title: 'Whispers at Dawn', author: 'Meera Joshi', duration: 192 },
+      { title: 'Midnight Platform', author: 'Rahul Das', duration: 225 },
+      { title: 'River Ghazal', author: 'Imran Qureshi', duration: 178 }
+    ];
+
+    let state = {
+      coins: 0, signedUp: false, userName: 'Guest Writer', userHandle: '@guest_verse',
+      carouselIndex: 0, currentPoem: null, saved: [], liked: [], myPoems: [],
+      audioPlaying: false, audioProgress: 0, audioInterval: null, audioTrackIndex: 0,
+      lang: 'en', leaderboardTab: 'patrons', libraryTab: 'saved', promoDismissed: false
+    };
+
+    const STORAGE_KEY = 'versegrid_state';
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadState();
+      renderTop5Carousel();
+      renderHomeMoods();
+      renderEvents();
+      renderListen();
+      renderMoods();
+      renderWriters();
+      renderLeaderboard();
+      renderExplore();
+      renderBlog();
+      renderFAQ();
+      performSearch();
+      renderLibrary();
+      updateProfile();
+      cloneMobileNav();
+    });
+
+    function loadState() {
+      try {
+        const s = localStorage.getItem(STORAGE_KEY);
+        if (s) { const p = JSON.parse(s); state = { ...state, ...p, audioInterval: null, audioPlaying: false }; }
+      } catch (e) {}
+      if (state.promoDismissed) {
+        document.getElementById('promo-banner')?.classList.add('hidden');
+        document.getElementById('promo-header')?.classList.add('hidden');
+      }
+      updateCoinDisplay();
+    }
+
+    function saveState() {
+      const { audioInterval, ...p } = state;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(p));
+    }
+
+    function cloneMobileNav() {
+      const clone = document.getElementById('mobile-nav-clone');
+      document.querySelectorAll('#desktop-nav .nav-btn').forEach(btn => {
+        const a = document.createElement('a');
+        a.href = '#';
+        a.className = 'flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50 text-sm';
+        a.innerHTML = btn.innerHTML;
+        a.onclick = e => { e.preventDefault(); toggleMobileMenu(); switchTab(btn.dataset.target); };
+        clone.appendChild(a);
+      });
+    }
+
     function switchTab(tabId) {
-      // Hide all sections
-      document.querySelectorAll('.page-section').forEach(el => {
-        el.classList.remove('active');
-        el.style.display = 'none'; // Force hide
-      });
-      
-      // Show target section
-      const target = document.getElementById(tabId);
-      target.style.display = 'block';
-      setTimeout(() => target.classList.add('active'), 10);
-
-      // Update Desktop Nav Styling
+      document.querySelectorAll('.page-section').forEach(el => el.classList.remove('active'));
+      document.getElementById(tabId)?.classList.add('active');
       document.querySelectorAll('#desktop-nav .nav-btn').forEach(el => {
-        el.classList.remove('bg-white/10', 'text-white');
-        el.classList.add('text-slate-400');
-        if(el.dataset.target === tabId) {
-          el.classList.remove('text-slate-400');
-          el.classList.add('bg-white/10', 'text-white');
-        }
+        el.classList.remove('bg-teal-50', 'text-teal-700');
+        el.classList.add('text-slate-600');
+        if (el.dataset.target === tabId) { el.classList.remove('text-slate-600'); el.classList.add('bg-teal-50', 'text-teal-700'); }
       });
-
-      // Update Mobile Nav Styling
       document.querySelectorAll('#mobile-nav .nav-btn-mob').forEach(el => {
-        el.classList.remove('text-teal-400');
-        el.classList.add('text-slate-500');
-        if(el.dataset.target === tabId) {
-          el.classList.remove('text-slate-500');
-          el.classList.add('text-teal-400');
-        }
+        el.classList.toggle('text-teal-600', el.dataset.target === tabId);
+        el.classList.toggle('text-slate-400', el.dataset.target !== tabId);
       });
-
       window.scrollTo(0, 0);
     }
 
-    // Like Button Logic
+    function toggleMobileMenu() { document.getElementById('mobile-menu').classList.toggle('hidden'); }
+
+    // Carousel
+    function renderTop5Carousel() {
+      const top5 = POEMS.slice(0, 5);
+      document.getElementById('top5-carousel').innerHTML = top5.map((p, i) => `
+        <div class="w-full shrink-0" style="min-width:100%">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 px-1">
+            <div class="md:col-span-1 flex flex-col justify-center">
+              <span class="text-xs font-bold bg-teal-600 text-white w-fit px-2 py-0.5 rounded-full mb-2">#${i + 1} Today</span>
+              <h4 class="text-2xl font-serif font-bold text-slate-900">${p.title}</h4>
+              <p class="text-sm text-slate-500 mt-1">by ${p.author}</p>
+              <p class="text-xs text-teal-600 font-semibold mt-2">${p.tag}</p>
+            </div>
+            <div class="md:col-span-2 bg-slate-50 border border-slate-100 rounded-2xl p-6 cursor-pointer hover:border-teal-200 transition" onclick="openPoem(${p.id})">
+              <p class="font-serif text-lg text-slate-700 leading-relaxed line-clamp-3">${p.body.replace(/\n/g, '<br>')}</p>
+              <div class="flex justify-between items-center mt-4 pt-4 border-t border-slate-200">
+                <span class="text-xs text-slate-400"><i class="fa-solid fa-heart text-red-400 mr-1"></i>${p.likes.toLocaleString()} likes</span>
+                <span class="text-xs font-semibold text-teal-600">Read full poem →</span>
+              </div>
+            </div>
+          </div>
+        </div>`).join('');
+      document.getElementById('carousel-dots').innerHTML = top5.map((_, i) =>
+        `<button onclick="goToSlide(${i})" class="carousel-dot h-2 rounded-full transition ${i === 0 ? 'bg-teal-600 w-6' : 'bg-slate-200 w-2'}"></button>`
+      ).join('');
+    }
+
+    function updateCarousel() {
+      document.getElementById('top5-carousel').style.transform = `translateX(-${state.carouselIndex * 100}%)`;
+      document.querySelectorAll('.carousel-dot').forEach((d, i) => {
+        d.className = `carousel-dot h-2 rounded-full transition ${i === state.carouselIndex ? 'bg-teal-600 w-6' : 'bg-slate-200 w-2'}`;
+      });
+    }
+    function carouselNext() { state.carouselIndex = (state.carouselIndex + 1) % 5; updateCarousel(); }
+    function carouselPrev() { state.carouselIndex = (state.carouselIndex - 1 + 5) % 5; updateCarousel(); }
+    function goToSlide(i) { state.carouselIndex = i; updateCarousel(); }
+
+    // Renders
+    function renderHomeMoods() {
+      document.getElementById('home-moods').innerHTML = MOODS.map(m => `
+        <div onclick="filterByMood('${m.name}')" class="cursor-pointer flex items-center gap-3 ${m.colorClass.split(' ')[1]} border border-slate-200 p-3 rounded-2xl hover:border-teal-300 transition group">
+          <i class="fa-solid ${m.icon} ${m.colorClass.split(' ')[0]} group-hover:scale-110 transition"></i>
+          <h4 class="text-sm font-bold text-slate-900">${m.name}</h4>
+        </div>`).join('');
+    }
+
+    function renderEvents() {
+      document.getElementById('events-list').innerHTML = EVENTS.map((e, i) => `
+        <div class="bento-card bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
+          <div class="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center mb-4"><i class="fa-solid fa-calendar-day text-amber-600"></i></div>
+          <h3 class="font-bold text-slate-900">${e.title}</h3>
+          <p class="text-sm text-slate-500 mt-1">${e.date}</p>
+          <p class="text-xs text-slate-400 mt-0.5">${e.venue}</p>
+          <button onclick="reserveSpot(${i})" class="mt-4 text-xs font-bold text-teal-700 bg-teal-50 px-4 py-2 rounded-full hover:bg-teal-100 transition">${e.spots} spots left · Reserve</button>
+        </div>`).join('');
+    }
+
+    function renderListen() {
+      document.getElementById('listen-list').innerHTML = AUDIO_TRACKS.map((t, i) => `
+        <div onclick="playTrack(${i})" class="bento-card bg-white border border-slate-200 rounded-2xl p-5 flex items-center gap-4 cursor-pointer shadow-sm">
+          <div class="w-14 h-14 rounded-full bg-slate-900 text-white flex items-center justify-center shrink-0"><i class="fa-solid fa-play ml-0.5"></i></div>
+          <div class="flex-1 min-w-0"><h3 class="font-bold truncate">${t.title}</h3><p class="text-sm text-slate-500">${t.author}</p></div>
+          <span class="text-sm text-slate-400">${formatTime(t.duration)}</span>
+        </div>`).join('');
+    }
+
+    function renderMoods() {
+      document.getElementById('moods-grid').innerHTML = MOODS.map(m => {
+        const count = POEMS.filter(p => p.mood === m.name).length;
+        return `<button onclick="filterByMood('${m.name}')" class="bento-card p-6 rounded-3xl border border-slate-200 bg-white text-left shadow-sm">
+          <i class="fa-solid ${m.icon} text-3xl ${m.colorClass.split(' ')[0]} mb-3"></i>
+          <h3 class="font-bold">${m.name}</h3><p class="text-xs text-slate-400 mt-1">${count} poems</p></button>`;
+      }).join('');
+    }
+
+    function filterByMood(mood) {
+      switchTab('moods');
+      const results = POEMS.filter(p => p.mood === mood);
+      const c = document.getElementById('mood-results');
+      c.classList.remove('hidden');
+      c.innerHTML = results.map(p => poemCardHTML(p)).join('');
+    }
+
+    function renderWriters() {
+      document.getElementById('writers-list').innerHTML = WRITERS.map(w => `
+        <div onclick="viewWriter('${w.name}')" class="bento-card bg-white border border-slate-200 rounded-2xl p-5 flex items-center gap-4 cursor-pointer shadow-sm">
+          <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(w.name)}&background=ecfdf5&color=0f766e&size=64" class="w-16 h-16 rounded-full" alt="">
+          <div class="flex-1 min-w-0"><h3 class="font-bold">${w.name}</h3><p class="text-xs text-teal-600">${w.handle}</p><p class="text-xs text-slate-500 truncate mt-1">${w.bio}</p></div>
+          <div class="text-right shrink-0"><p class="font-bold">${w.poems}</p><p class="text-[10px] text-slate-400">poems</p></div>
+        </div>`).join('');
+    }
+
+    function renderLeaderboard() {
+      const patrons = [
+        { rank: 1, name: 'Ajay Mehta', score: '2,840 coins' }, { rank: 2, name: 'Madan Verma', score: '1,920 coins' },
+        { rank: 3, name: 'Farhat Ali', score: '1,540 coins' }, { rank: 4, name: 'Nitya Rao', score: '980 coins' },
+        { rank: 5, name: 'Jawwad Khan', score: '760 coins' }, { rank: 6, name: 'Kiran Patel', score: '620 coins' }
+      ];
+      const poets = [...POEMS].sort((a, b) => b.likes - a.likes).slice(0, 6).map((p, i) => ({ rank: i + 1, name: p.author, score: `${p.likes.toLocaleString()} likes` }));
+      const list = state.leaderboardTab === 'patrons' ? patrons : poets;
+      document.getElementById('leaderboard-list').innerHTML = list.map(item => `
+        <div class="flex items-center gap-3 p-4 rounded-2xl ${item.rank === 1 ? 'bg-amber-50 border border-amber-100' : 'bg-white border border-slate-200'} shadow-sm">
+          <span class="w-8 h-8 rounded-full ${item.rank <= 3 ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-600'} flex items-center justify-center text-sm font-bold">${item.rank}</span>
+          <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(item.name)}&background=f1f5f9&color=334155&size=40" class="w-10 h-10 rounded-full" alt="">
+          <div class="flex-1"><p class="font-semibold">${item.name}</p></div>
+          <span class="text-sm font-bold text-slate-500">${item.score}</span>
+        </div>`).join('');
+      document.getElementById('lb-tab-patrons').className = `text-sm font-bold px-5 py-2 rounded-full ${state.leaderboardTab === 'patrons' ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-600'}`;
+      document.getElementById('lb-tab-poets').className = `text-sm font-bold px-5 py-2 rounded-full ${state.leaderboardTab === 'poets' ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-600'}`;
+    }
+
+    function setLeaderboardTab(tab) { state.leaderboardTab = tab; renderLeaderboard(); }
+
+    function renderExplore() { document.getElementById('explore-grid').innerHTML = POEMS.map(p => poemCardHTML(p)).join(''); }
+    function performExploreSearch() {
+      const q = document.getElementById('explore-search').value.toLowerCase().trim();
+      const results = q ? POEMS.filter(p => matchPoem(p, q)) : POEMS;
+      document.getElementById('explore-grid').innerHTML = results.map(p => poemCardHTML(p)).join('');
+    }
+
+    function renderBlog() {
+      document.getElementById('blog-list').innerHTML = BLOG.map(b => `
+        <article onclick="showToast('Opening: ${b.title}')" class="bento-card bg-white border border-slate-200 rounded-3xl p-6 cursor-pointer shadow-sm">
+          <span class="text-xs text-slate-400">${b.date}</span>
+          <h3 class="font-serif font-bold text-xl mt-2">${b.title}</h3>
+          <p class="text-sm text-slate-500 mt-2">${b.excerpt}</p>
+        </article>`).join('');
+    }
+
+    function renderFAQ() {
+      document.getElementById('faq-list').innerHTML = FAQ.map(f => `
+        <details class="bento-card bg-white border border-slate-200 rounded-2xl p-5 shadow-sm group">
+          <summary class="font-semibold cursor-pointer list-none flex justify-between items-center">${f.q}<i class="fa-solid fa-chevron-down text-xs text-slate-400 group-open:rotate-180 transition"></i></summary>
+          <p class="text-sm text-slate-500 mt-3">${f.a}</p>
+        </details>`).join('');
+    }
+
+    function matchPoem(p, q) {
+      return p.title.toLowerCase().includes(q) || p.author.toLowerCase().includes(q) || p.tag.toLowerCase().includes(q) || p.mood.toLowerCase().includes(q);
+    }
+
+    function performSearch() {
+      const q = (document.getElementById('search-input')?.value || '').toLowerCase().trim();
+      const results = q ? POEMS.filter(p => matchPoem(p, q)) : POEMS.slice(0, 6);
+      const c = document.getElementById('search-results');
+      if (!c) return;
+      c.innerHTML = (q ? `<p class="col-span-full text-sm text-slate-400 mb-2">${results.length} result${results.length !== 1 ? 's' : ''}</p>` : '') + results.map(p => poemCardHTML(p)).join('');
+    }
+
+    function poemCardHTML(p) {
+      return `<div onclick="openPoem(${p.id})" class="bento-card bg-white p-6 rounded-3xl border border-slate-200 hover:border-teal-300 transition cursor-pointer shadow-sm">
+        <span class="text-xs text-teal-600 font-bold">${p.tag}</span>
+        <h4 class="text-xl font-serif text-slate-900 mt-2 mb-1">${p.title}</h4>
+        <p class="text-sm text-slate-500">${p.author} · ${p.mood}</p>
+      </div>`;
+    }
+
+    function renderLibrary() {
+      const items = state.libraryTab === 'saved' ? state.saved : state.liked;
+      const c = document.getElementById('library-list');
+      if (!items.length) {
+        c.innerHTML = `<div class="text-center py-10 text-slate-400"><i class="fa-solid fa-book-open text-3xl mb-3 block opacity-30"></i><p>${state.libraryTab === 'saved' ? 'No saved poems yet' : 'No liked poems yet'}</p></div>`;
+        return;
+      }
+      c.innerHTML = items.map(id => {
+        const p = POEMS.find(x => x.id === id);
+        if (!p) return '';
+        return `<div class="flex justify-between items-center border-b border-slate-100 py-4 last:border-0">
+          <div onclick="openPoem(${p.id})" class="cursor-pointer"><h4 class="font-bold">${p.title}</h4><p class="text-sm text-slate-500">${p.author}</p></div>
+          <button onclick="removeFromLibrary(${p.id})" class="text-red-400 hover:text-red-500 p-2"><i class="fa-solid fa-trash-can"></i></button>
+        </div>`;
+      }).join('');
+    }
+
+    function setLibraryTab(tab) {
+      state.libraryTab = tab;
+      document.getElementById('lib-tab-saved').className = `lib-tab pb-2 ${tab === 'saved' ? 'text-teal-600 font-bold border-b-2 border-teal-500' : 'text-slate-500'}`;
+      document.getElementById('lib-tab-liked').className = `lib-tab pb-2 ${tab === 'liked' ? 'text-teal-600 font-bold border-b-2 border-teal-500' : 'text-slate-500'}`;
+      renderLibrary();
+    }
+
+    function removeFromLibrary(id) { state.saved = state.saved.filter(x => x !== id); state.liked = state.liked.filter(x => x !== id); saveState(); renderLibrary(); showToast('Removed from library'); }
+
+    // Poem modal
+    function openPoem(id) {
+      const poem = POEMS.find(p => p.id === id);
+      if (!poem) return;
+      state.currentPoem = poem;
+      document.getElementById('modal-tag').textContent = poem.tag;
+      document.getElementById('modal-title').textContent = poem.title;
+      document.getElementById('modal-author').textContent = 'by ' + poem.author;
+      document.getElementById('modal-body').textContent = poem.body;
+      document.getElementById('poem-modal').classList.add('open');
+    }
+    function closePoem() { document.getElementById('poem-modal').classList.remove('open'); state.currentPoem = null; }
+    function likeCurrentPoem() {
+      if (!state.currentPoem) return;
+      const id = state.currentPoem.id;
+      if (state.liked.includes(id)) { state.liked = state.liked.filter(x => x !== id); showToast('Removed from liked'); }
+      else { state.liked.push(id); showToast('Added to liked poems'); }
+      saveState();
+    }
+    function saveCurrentPoem() { savePoemById(state.currentPoem?.id); }
+    function savePoemById(id) {
+      if (!id) return;
+      if (state.saved.includes(id)) { showToast('Already in library'); return; }
+      state.saved.push(id); saveState(); showToast('Saved to library');
+    }
+    function tipCurrentPoem() { tipPoet(10); }
+
+    function tipPoet(amount) {
+      if (state.coins < amount) { showToast('Not enough Ink Coins — sign up for 30 free!'); openSignup(); return; }
+      state.coins -= amount; updateCoinDisplay(); saveState();
+      showToast(`Tipped ${amount} Ink Coins — thank you for supporting poets!`);
+    }
+
+    function viewWriter(name) {
+      const w = WRITERS.find(x => x.name === name);
+      showToast(w ? `${w.name} · ${w.followers} followers · ${w.poems} poems` : `Viewing ${name}'s profile`);
+    }
+
+    function filterFormat(fmt) { showToast(`Browsing ${fmt} poems…`); switchTab('explore'); }
+
+    // Audio
+    function formatTime(sec) { return `${Math.floor(sec / 60)}:${(sec % 60).toString().padStart(2, '0')}`; }
+    function playTrack(i) {
+      if (state.audioPlaying) resetAudioProgress();
+      state.audioTrackIndex = i;
+      const t = AUDIO_TRACKS[i];
+      document.getElementById('audio-title').textContent = t.title;
+      document.getElementById('audio-author').textContent = t.author;
+      state.audioProgress = 0;
+      toggleAudio();
+      switchTab('home');
+      showToast('Now playing: ' + t.title);
+    }
+    function toggleAudio() {
+      const btn = document.getElementById('audio-play-btn');
+      const wave = document.getElementById('waveform');
+      state.audioPlaying = !state.audioPlaying;
+      if (state.audioPlaying) {
+        btn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+        wave.classList.replace('audio-paused', 'audio-playing');
+        state.audioInterval = setInterval(() => {
+          state.audioProgress++;
+          const track = AUDIO_TRACKS[state.audioTrackIndex];
+          document.getElementById('audio-progress').style.width = (state.audioProgress / track.duration * 100) + '%';
+          document.getElementById('audio-time').textContent = formatTime(state.audioProgress);
+          if (state.audioProgress >= track.duration) resetAudioProgress();
+        }, 1000);
+      } else {
+        btn.innerHTML = '<i class="fa-solid fa-play ml-0.5"></i>';
+        wave.classList.replace('audio-playing', 'audio-paused');
+        clearInterval(state.audioInterval);
+      }
+    }
+    function resetAudioProgress() {
+      clearInterval(state.audioInterval);
+      state.audioPlaying = false;
+      state.audioProgress = 0;
+      document.getElementById('audio-progress').style.width = '0%';
+      document.getElementById('audio-time').textContent = '0:00';
+      document.getElementById('audio-play-btn').innerHTML = '<i class="fa-solid fa-play ml-0.5"></i>';
+      document.getElementById('waveform').classList.replace('audio-playing', 'audio-paused');
+    }
+    function seekAudio(e) {
+      const track = AUDIO_TRACKS[state.audioTrackIndex];
+      const pct = (e.clientX - e.currentTarget.getBoundingClientRect().left) / e.currentTarget.offsetWidth;
+      state.audioProgress = Math.floor(pct * track.duration);
+      document.getElementById('audio-progress').style.width = (pct * 100) + '%';
+      document.getElementById('audio-time').textContent = formatTime(state.audioProgress);
+    }
+
+    // Signup & submit
+    function openSignup() { document.getElementById('signup-modal').classList.add('open'); }
+    function closeSignup() { document.getElementById('signup-modal').classList.remove('open'); }
+    function completeSignup() {
+      const name = document.getElementById('signup-name').value.trim() || 'Verse Reader';
+      const email = document.getElementById('signup-email').value.trim();
+      if (!email) { showToast('Please enter your email'); return; }
+      state.signedUp = true;
+      state.userName = name;
+      state.userHandle = '@' + name.toLowerCase().replace(/\s+/g, '_');
+      if (!state.coins) state.coins = 30; else state.coins += 30;
+      dismissPromo();
+      updateProfile(); updateCoinDisplay(); saveState(); closeSignup();
+      showToast('Welcome! 30 Ink Coins added to your wallet.');
+    }
+    function updateProfile() {
+      document.getElementById('profile-name').textContent = state.userName;
+      document.getElementById('profile-handle').textContent = state.userHandle;
+      document.getElementById('stat-coins').textContent = state.coins;
+      document.getElementById('stat-poems').textContent = state.myPoems.length;
+      document.getElementById('stat-followers').textContent = state.signedUp ? '1' : '0';
+      document.getElementById('profile-avatar').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(state.userName)}&background=0d9488&color=fff&size=120`;
+      document.getElementById('profile-cta').textContent = state.signedUp ? 'Account active' : 'Sign Up';
+      const empty = document.getElementById('profile-empty');
+      const poems = document.getElementById('profile-poems');
+      if (state.myPoems.length) {
+        empty.classList.add('hidden');
+        poems.classList.remove('hidden');
+        poems.innerHTML = state.myPoems.map(p => `<div class="bento-card bg-white border border-slate-200 rounded-2xl p-5 shadow-sm"><h4 class="font-bold">${p.title}</h4><p class="text-xs text-slate-500 mt-1">${p.mood}</p><p class="text-sm text-slate-600 mt-3 font-serif line-clamp-3">${p.body.replace(/\n/g, '<br>')}</p></div>`).join('');
+      } else {
+        empty.classList.remove('hidden');
+        poems.classList.add('hidden');
+      }
+    }
+    function updateCoinDisplay() {
+      document.getElementById('coin-balance').textContent = state.coins;
+      const s = document.getElementById('stat-coins');
+      if (s) s.textContent = state.coins;
+    }
+    function dismissPromo() {
+      state.promoDismissed = true;
+      document.getElementById('promo-banner')?.classList.add('hidden');
+      document.getElementById('promo-header')?.classList.add('hidden');
+      saveState();
+    }
+    function openSubmit() {
+      if (!state.signedUp) { showToast('Sign up first to publish poems'); openSignup(); return; }
+      document.getElementById('submit-modal').classList.add('open');
+    }
+    function closeSubmit() { document.getElementById('submit-modal').classList.remove('open'); }
+    function submitPoem() {
+      const title = document.getElementById('poem-title').value.trim();
+      const body = document.getElementById('poem-body').value.trim();
+      const mood = document.getElementById('poem-mood').value;
+      if (!title || !body) { showToast('Title and poem body are required'); return; }
+      state.myPoems.push({ title, body, mood });
+      document.getElementById('poem-title').value = '';
+      document.getElementById('poem-body').value = '';
+      updateProfile(); saveState(); closeSubmit();
+      showToast('Poem published on your profile!');
+    }
+    function reserveSpot(i) { showToast(`Reserved for ${EVENTS[i].title}`); }
+    function toggleLanguage() {
+      state.lang = state.lang === 'en' ? 'hi' : 'en';
+      document.getElementById('lang-btn').innerHTML = (state.lang === 'en' ? 'English' : 'हिन्दी') + ' <i class="fa-solid fa-chevron-down ml-1 text-[10px]"></i>';
+      showToast(state.lang === 'en' ? 'Language: English' : 'भाषा: हिन्दी');
+    }
     function toggleLike(btn) {
       const icon = btn.querySelector('i');
-      if (icon.classList.contains('text-red-500')) {
-        icon.classList.remove('text-red-500');
-        showToast('Removed from liked');
-      } else {
-        icon.classList.add('text-red-500');
-        showToast('Added to liked poems');
-      }
+      icon.classList.toggle('text-red-500');
+      showToast(icon.classList.contains('text-red-500') ? 'Added to liked' : 'Removed from liked');
     }
 
-    // Media Player Logic
-    function playMedia(type) {
-      showToast('Starting ' + type + ' playback...');
-      if(type === 'Audio') {
-        const bar = document.getElementById('audio-progress');
-        bar.style.transition = 'width 5s linear';
-        bar.style.width = '100%';
-        setTimeout(() => { bar.style.width = '0%'; }, 5000);
-      }
-    }
-
-    // Toast Notification System
     function showToast(message) {
       const container = document.getElementById('toast-container');
       const toast = document.createElement('div');
       toast.className = 'toast';
-      toast.innerHTML = `<i class="fa-solid fa-circle-info text-teal-400 mr-2"></i> ${message}`;
-      
+      toast.innerHTML = `<i class="fa-solid fa-circle-info text-teal-500 mr-2"></i>${message}`;
       container.appendChild(toast);
-      
-      // Remove toast after 3 seconds
-      setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateX(100%)';
-        toast.style.transition = 'all 0.3s ease';
-        setTimeout(() => toast.remove(), 300);
-      }, 3000);
+      setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateX(100%)'; toast.style.transition = 'all 0.3s ease'; setTimeout(() => toast.remove(), 300); }, 3000);
     }
   </script>
 </body>
